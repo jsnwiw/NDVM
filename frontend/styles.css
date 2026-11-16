@@ -1716,7 +1716,7 @@ main{flex:1;min-width:0;background:var(--bg)}.footer{display:flex;justify-conten
    동적 취약성 타임라인 컨트롤러 바 전용 스타일
    ========================================================================== */
 .ndvm-dynamic-timeline-bar {
-  display: flex;
+  display: none;
   flex-direction: column;
   gap: 14px;
   padding: 18px 24px;
