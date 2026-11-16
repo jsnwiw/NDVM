@@ -1,5 +1,5 @@
 ﻿/* NDVM 오프라인 준비: 웹사이트를 한 번 연 후 주요 로컬 파일 캐시 */
-const CACHE='ndvm-offline-v3';
+const CACHE='ndvm-offline-v4';
 const PRECACHE=['./','./index.html','./styles.css','./app.js','./manifest.webmanifest','./js/constants.js','./js/state.js','./js/pages.js','./js/dynamic-vulnerability.js','./js/map.js','./js/weather.js','./js/shelter.js','./js/stats.js','./js/alerts.js','./js/safety.js','./js/safety-extras.js','./js/vendor/qrcode-offline.js','./data/disaster_risks.json','./data/shelters.json','./data/skorea_municipalities_geo_simple.json'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>Promise.allSettled(PRECACHE.map(u=>cache.add(u)))).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('ndvm-offline-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
