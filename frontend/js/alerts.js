@@ -10,6 +10,106 @@ let ndvmRadarVisible = true;
 let ndvmLiveSimTimer = null;
 let ndvmHudCollapsed = false;
 
+// 알림 확인(읽음) 및 차단 상태 영구 보관 (localStorage)
+const NDVM_CONFIRMED_ALERTS_KEY = 'ndvm_confirmed_alerts_v1';
+const NDVM_MUTED_ALERTS_KEY = 'ndvm_muted_alerts_v1';
+
+// 접속 시점에 이미 존재하던 알림 ID 집합 (진입 시 알림 팝업 차단용)
+const ndvmInitialAlertIds = new Set();
+
+// 1. 확인(읽음) 상태 관리 헬퍼
+function getConfirmedAlertIds() {
+  try {
+    const raw = localStorage.getItem(NDVM_CONFIRMED_ALERTS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+function isAlertConfirmed(alertId) {
+  if (!alertId) return false;
+  const list = getConfirmedAlertIds();
+  return list.includes(String(alertId));
+}
+
+function markAlertConfirmed(alertId, confirmed = true) {
+  if (!alertId) return;
+  const list = getConfirmedAlertIds();
+  const idStr = String(alertId);
+  let updated;
+  if (confirmed) {
+    if (!list.includes(idStr)) {
+      updated = [idStr, ...list].slice(0, 300);
+    } else {
+      updated = list;
+    }
+  } else {
+    updated = list.filter(id => id !== idStr);
+  }
+  try {
+    localStorage.setItem(NDVM_CONFIRMED_ALERTS_KEY, JSON.stringify(updated));
+  } catch (_) {}
+
+  // 화면 UI 동기화 (티커, 모달, HUD, 지도 마커)
+  renderAlertTickerUI();
+  if (typeof window.__refreshAlertModal === 'function') {
+    window.__refreshAlertModal();
+  }
+  if (document.getElementById('ndvm-live-radar-hud')) {
+    renderLiveRadarHud();
+  }
+  if (window.ndvmLeafletMap && ndvmAlertPulseLayer) {
+    initAlertsOnMap(window.ndvmLeafletMap);
+  }
+}
+
+function markAllAlertsConfirmed() {
+  const alerts = ndvmDisasterAlerts.length > 0 ? ndvmDisasterAlerts : NDVM_FALLBACK_ALERTS;
+  const list = getConfirmedAlertIds();
+  const idSet = new Set(list);
+  alerts.forEach(a => {
+    idSet.add(String(a.id));
+    if (a.title) idSet.add(String(a.title));
+  });
+  try {
+    localStorage.setItem(NDVM_CONFIRMED_ALERTS_KEY, JSON.stringify(Array.from(idSet).slice(0, 300)));
+  } catch (_) {}
+
+  // 열려있는 토스트 팝업 즉시 제거
+  const t = document.getElementById('ndvm-alert-toast');
+  if (t) t.remove();
+
+  renderAlertTickerUI();
+  if (typeof window.__refreshAlertModal === 'function') {
+    window.__refreshAlertModal();
+  }
+  if (document.getElementById('ndvm-live-radar-hud')) {
+    renderLiveRadarHud();
+  }
+  if (window.ndvmLeafletMap && ndvmAlertPulseLayer) {
+    initAlertsOnMap(window.ndvmLeafletMap);
+  }
+}
+
+function isToastsMuted() {
+  return localStorage.getItem(NDVM_MUTED_ALERTS_KEY) === 'true';
+}
+
+function toggleMuteToasts() {
+  const next = !isToastsMuted();
+  localStorage.setItem(NDVM_MUTED_ALERTS_KEY, String(next));
+  if (next) {
+    const t = document.getElementById('ndvm-alert-toast');
+    if (t) t.remove();
+  }
+  renderAlertTickerUI();
+  if (typeof window.__refreshAlertModal === 'function') {
+    window.__refreshAlertModal();
+  }
+  return next;
+}
+
 // 기본 실시간 재난문자 데이터셋
 const NDVM_FALLBACK_ALERTS = [
   {
@@ -166,7 +266,7 @@ const NDVM_LIVE_INCOMING_POOL = [
   }
 ];
 
-// 1. 재난문자 데이터 로드 (백엔드 연동 + 로컬 폴백)
+// 2. 재난문자 데이터 로드 (백엔드 연동 + 로컬 폴백)
 async function fetchDisasterAlerts() {
   try {
     const controller = new AbortController();
@@ -178,6 +278,7 @@ async function fetchDisasterAlerts() {
     const data = await response.json();
     if (data && Array.isArray(data.items) && data.items.length > 0) {
       ndvmDisasterAlerts = data.items;
+      ndvmDisasterAlerts.forEach(a => ndvmInitialAlertIds.add(String(a.id)));
       return ndvmDisasterAlerts;
     }
   } catch (err) {
@@ -186,10 +287,11 @@ async function fetchDisasterAlerts() {
   if (!ndvmDisasterAlerts || ndvmDisasterAlerts.length === 0) {
     ndvmDisasterAlerts = [...NDVM_FALLBACK_ALERTS];
   }
+  ndvmDisasterAlerts.forEach(a => ndvmInitialAlertIds.add(String(a.id)));
   return ndvmDisasterAlerts;
 }
 
-// 2. 상단 재난문자 티커 바 렌더링
+// 3. 상단 재난문자 티커 바 렌더링
 function renderAlertTickerUI() {
   const container = document.getElementById('ndvm-alert-ticker-container');
   if (!container) return;
@@ -197,24 +299,31 @@ function renderAlertTickerUI() {
   const alerts = ndvmDisasterAlerts.length > 0 ? ndvmDisasterAlerts : NDVM_FALLBACK_ALERTS;
   const current = alerts[ndvmCurrentTickerIndex] || alerts[0];
   const isEmergency = current.level === '긴급재난' || current.level === '위급재난';
+  const confirmed = isAlertConfirmed(current.id);
+  const muted = isToastsMuted();
 
   container.innerHTML = `
-    <aside class="ndvm-ticker-bar ${isEmergency ? 'emergency' : 'safety'}" role="alert" aria-live="assertive">
+    <aside class="ndvm-ticker-bar ${isEmergency ? 'emergency' : 'safety'} ${confirmed ? 'is-confirmed' : ''}" role="alert" aria-live="assertive">
       <div class="ticker-inner">
         <div class="ticker-badge">
-          <span class="ticker-beacon" aria-hidden="true"></span>
+          <span class="ticker-beacon ${confirmed ? 'beacon-off' : ''}" aria-hidden="true"></span>
           <strong>${esc(current.level || '긴급재난')}</strong>
           <span class="ticker-count">${ndvmCurrentTickerIndex + 1}/${alerts.length}</span>
         </div>
         
-        <div class="ticker-content" id="ticker-alert-item" title="클릭 시 지도에서 위치를 확인합니다.">
+        <div class="ticker-content" id="ticker-alert-item" title="클릭 시 지도에서 위치를 확인하고 확인 완료로 처리합니다.">
           <span class="ticker-tag">${esc(current.category)}</span>
           <span class="ticker-title">${esc(current.title)}</span>
           <span class="ticker-time">${esc(current.timestamp)}</span>
-          <span class="ticker-hint">지도 레이더 보기 ›</span>
+          ${confirmed 
+            ? '<span class="ticker-confirmed-label" style="display:inline-flex;align-items:center;background:#059669;color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;margin-left:6px;">✓ 확인됨</span>'
+            : '<span class="ticker-hint">지도 레이더 보기 ›</span>'}
         </div>
 
         <div class="ticker-controls">
+          <button type="button" class="ticker-btn-ack ${confirmed ? 'confirmed' : ''}" id="ticker-ack-current" title="${confirmed ? '확인된 알림입니다 (클릭 시 확인 취소)' : '이 재난문자를 확인 처리합니다 (알림 해제)'}">
+            ${confirmed ? '✓ 확인완료' : '✓ 확인'}
+          </button>
           <button type="button" class="ticker-btn" id="ticker-prev" aria-label="이전 재난문자">‹</button>
           <button type="button" class="ticker-btn" id="ticker-toggle-play" aria-label="${ndvmTickerIsPaused ? '재생' : '일시정지'}">
             ${ndvmTickerIsPaused ? '▶' : '❚❚'}
@@ -224,6 +333,9 @@ function renderAlertTickerUI() {
             <span>재난문자 보관함</span>
             <strong class="count-pill">${alerts.length}</strong>
           </button>
+          <button type="button" class="ticker-mute-btn ${muted ? 'muted' : ''}" id="ticker-toggle-mute" title="${muted ? '알림 팝업 음소거 해제' : '알림 팝업 전체 음소거'}">
+            ${muted ? '🔕 음소거 중' : '🔔 알림 켜짐'}
+          </button>
         </div>
       </div>
     </aside>
@@ -232,7 +344,26 @@ function renderAlertTickerUI() {
   // 티커 이벤트 리스너 연결
   const alertItemEl = document.getElementById('ticker-alert-item');
   if (alertItemEl) {
-    alertItemEl.onclick = () => focusDisasterAlert(current.id);
+    alertItemEl.onclick = () => {
+      markAlertConfirmed(current.id, true);
+      focusDisasterAlert(current.id);
+    };
+  }
+
+  const ackBtn = document.getElementById('ticker-ack-current');
+  if (ackBtn) {
+    ackBtn.onclick = (e) => {
+      e.stopPropagation();
+      markAlertConfirmed(current.id, !confirmed);
+    };
+  }
+
+  const muteBtn = document.getElementById('ticker-toggle-mute');
+  if (muteBtn) {
+    muteBtn.onclick = (e) => {
+      e.stopPropagation();
+      toggleMuteToasts();
+    };
   }
 
   const prevBtn = document.getElementById('ticker-prev');
@@ -302,7 +433,7 @@ function navigateTicker(direction, fromAuto = false) {
   }
 }
 
-// 3. 지도 상의 레이더 펄스(Pulse) 마커 초기화 & 렌더링
+// 4. 지도 상의 레이더 펄스(Pulse) 마커 초기화 & 렌더링
 function initAlertsOnMap(map) {
   if (!map || !window.L) return;
 
@@ -317,8 +448,9 @@ function initAlertsOnMap(map) {
   alerts.forEach(alert => {
     if (!alert.lat || !alert.lng) return;
 
+    const isConfirmed = isAlertConfirmed(alert.id);
     const isEmergency = alert.level === '긴급재난' || alert.level === '위급재난';
-    const markerTypeClass = isEmergency ? 'pulse-danger' : 'pulse-warning';
+    const markerTypeClass = isConfirmed ? 'pulse-confirmed' : (isEmergency ? 'pulse-danger' : 'pulse-warning');
 
     const getIcon = (cat) => {
       if (cat === '호우') return '🌧';
@@ -339,7 +471,7 @@ function initAlertsOnMap(map) {
           <div class="radar-dot">
             <span class="radar-icon">${getIcon(alert.category)}</span>
           </div>
-          <div class="radar-label">${esc(alert.category)}: ${esc(alert.sigungu || alert.region)}</div>
+          <div class="radar-label">${isConfirmed ? '✓ 확인완료' : esc(alert.category)}: ${esc(alert.sigungu || alert.region)}</div>
         </div>
       `,
       iconSize: [40, 40],
@@ -350,7 +482,7 @@ function initAlertsOnMap(map) {
     const marker = L.marker([alert.lat, alert.lng], {
       icon: icon,
       title: `${alert.level}: ${alert.title}`,
-      zIndexOffset: 1200
+      zIndexOffset: isConfirmed ? 900 : 1200
     });
 
     // 팝업 내용
@@ -360,6 +492,7 @@ function initAlertsOnMap(map) {
           <span class="badge ${isEmergency ? 'danger' : 'warning'}">${esc(alert.level)}</span>
           <span class="alert-popup-category">${esc(alert.category)}</span>
           <span class="alert-popup-time">${esc(alert.timestamp)}</span>
+          ${isConfirmed ? '<span class="badge confirmed" style="background:#059669;color:#fff;">✓ 확인완료</span>' : ''}
         </div>
         <h4 class="alert-popup-title">${esc(alert.title)}</h4>
         <div class="alert-popup-sender">발령: ${esc(alert.sender)}</div>
@@ -367,9 +500,12 @@ function initAlertsOnMap(map) {
         <div class="alert-popup-inst">
           <strong>🚨 행동요령:</strong> ${esc(alert.instruction)}
         </div>
-        <div class="alert-popup-actions">
+        <div class="alert-popup-actions" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
           <button type="button" class="btn-popup-shelter" onclick="searchNearShelter('${esc(alert.sigungu || alert.region)}')">
-            🏢 ${esc(alert.sigungu || '해당지역')} 대피시설 찾기
+            🏢 대피시설 찾기
+          </button>
+          <button type="button" class="btn-popup-ack" onclick="markAlertConfirmed('${esc(alert.id)}', ${!isConfirmed})" style="padding:4px 8px;font-size:11px;font-weight:700;border-radius:4px;border:none;cursor:pointer;background:${isConfirmed ? '#64748b' : '#059669'};color:#fff;">
+            ${isConfirmed ? '✓ 확인완료 (해제)' : '✓ 확인 (알림끄기)'}
           </button>
         </div>
       </div>
@@ -399,7 +535,7 @@ function initAlertsOnMap(map) {
   renderLiveRadarHud();
 }
 
-// 4. 지도 위에 띄우는 실시간 재난문자 레이더 플로팅 HUD (Live Radar HUD)
+// 5. 지도 위에 띄우는 실시간 재난문자 레이더 플로팅 HUD (Live Radar HUD)
 function renderLiveRadarHud() {
   const mapContainer = document.getElementById('ndvm-map');
   if (!mapContainer) return;
@@ -417,6 +553,7 @@ function renderLiveRadarHud() {
   const alerts = ndvmDisasterAlerts.length > 0 ? ndvmDisasterAlerts : NDVM_FALLBACK_ALERTS;
   const emergencyCount = alerts.filter(a => a.level === '긴급재난' || a.level === '위급재난').length;
   const warningCount = alerts.length - emergencyCount;
+  const confirmedCount = alerts.filter(a => isAlertConfirmed(a.id)).length;
   const recentAlerts = alerts.slice(0, 4);
 
   hudEl.className = `ndvm-live-radar-hud ${ndvmHudCollapsed ? 'collapsed' : ''}`;
@@ -458,6 +595,10 @@ function renderLiveRadarHud() {
             <span class="stat-label">⚠️ 안전안내:</span>
             <span class="stat-val warning">${warningCount}건</span>
           </div>
+          <div class="stat-row">
+            <span class="stat-label">✓ 확인완료:</span>
+            <span class="stat-val" style="color:#10b981;">${confirmedCount}건</span>
+          </div>
         </div>
       </div>
 
@@ -469,13 +610,15 @@ function renderLiveRadarHud() {
       <div class="radar-feed-list">
         ${recentAlerts.map(item => {
           const isEmer = item.level === '긴급재난' || item.level === '위급재난';
+          const isConf = isAlertConfirmed(item.id);
           return `
-            <div class="radar-feed-item ${isEmer ? 'danger' : ''}" onclick="focusDisasterAlert('${esc(item.id)}')" title="클릭 시 지도를 이동합니다">
+            <div class="radar-feed-item ${isEmer ? 'danger' : ''} ${isConf ? 'confirmed' : ''}" onclick="markAlertConfirmed('${esc(item.id)}', true); focusDisasterAlert('${esc(item.id)}')" title="클릭 시 지도 이동 및 확인 처리">
               <span class="radar-feed-icon">${item.category === '호우' ? '🌧' : item.category === '산사태' ? '⛰' : item.category === '지진' ? '⚡' : item.category === '태풍' ? '🌀' : '⚠️'}</span>
               <div class="radar-feed-content">
                 <div class="radar-feed-top">
                   <span class="radar-feed-region">${esc(item.region || item.sigungu)}</span>
                   <span class="radar-feed-time">${esc(item.timestamp)}</span>
+                  ${isConf ? '<span style="font-size:9px;color:#10b981;font-weight:700;">✓ 확인됨</span>' : ''}
                 </div>
                 <div class="radar-feed-msg">${esc(item.title)}</div>
               </div>
@@ -501,7 +644,7 @@ function renderLiveRadarHud() {
   }
 }
 
-// 5. 실시간 재난문자 수신 시뮬레이션 및 토스트 알림
+// 6. 실시간 재난문자 수신 시뮬레이션 및 토스트 알림
 let simIndex = 0;
 function simulateIncomingAlert() {
   const sample = NDVM_LIVE_INCOMING_POOL[simIndex % NDVM_LIVE_INCOMING_POOL.length];
@@ -517,6 +660,11 @@ function simulateIncomingAlert() {
     is_active: true
   };
 
+  // 만약 동일 제목의 알림을 사용자가 이미 확인한 적이 있다면 자동 확인 처리
+  if (isAlertConfirmed(sample.title)) {
+    markAlertConfirmed(newAlert.id, true);
+  }
+
   // 목록 최상단에 추가
   ndvmDisasterAlerts.unshift(newAlert);
 
@@ -529,11 +677,22 @@ function simulateIncomingAlert() {
     initAlertsOnMap(window.ndvmLeafletMap);
   }
 
-  // 화면 우측 하단 토스트 알림 팝업
+  // 화면 우측 하단 토스트 알림 팝업 (확인된 알림이나 음소거 시 내부에서 자동 차단)
   showDisasterToast(newAlert);
 }
 
 function showDisasterToast(alert) {
+  if (!alert) return;
+
+  // [핵심 조건 1] 전체 알림 팝업이 음소거 상태인 경우 알림 안 옴
+  if (isToastsMuted()) return;
+
+  // [핵심 조건 2] 사용자가 이미 확인(읽음)한 알림인 경우 알림 안 옴
+  if (isAlertConfirmed(alert.id) || isAlertConfirmed(alert.title)) return;
+
+  // [핵심 조건 3] 사이트에 들어왔을 때 이미 존재하던 기존 알림인 경우 팝업 알림 안 옴
+  if (ndvmInitialAlertIds.has(String(alert.id))) return;
+
   let existingToast = document.getElementById('ndvm-alert-toast');
   if (existingToast) existingToast.remove();
 
@@ -548,32 +707,40 @@ function showDisasterToast(alert) {
         <span class="toast-badge ${isEmergency ? '' : 'warning'}">🚨 ${esc(alert.level)}</span>
         <span class="toast-time">${esc(alert.timestamp)}</span>
       </div>
-      <button type="button" class="toast-close" onclick="this.closest('.ndvm-alert-toast').remove()" aria-label="닫기">×</button>
+      <button type="button" class="toast-close" onclick="markAlertConfirmed('${esc(alert.id)}'); this.closest('.ndvm-alert-toast').remove()" aria-label="확인하고 닫기" title="확인하고 다시 알리지 않음">×</button>
     </div>
     <h4 class="toast-title">${esc(alert.title)}</h4>
     <p class="toast-body">${esc(alert.message)}</p>
-    <button type="button" class="toast-btn" onclick="focusDisasterAlert('${esc(alert.id)}'); this.closest('.ndvm-alert-toast').remove();">
-      지도 레이더에서 즉시 확인 →
-    </button>
+    <div class="toast-actions-wrap" style="display:flex;gap:6px;justify-content:flex-end;margin-top:6px;">
+      <button type="button" class="toast-btn-ack" onclick="markAlertConfirmed('${esc(alert.id)}'); this.closest('.ndvm-alert-toast').remove();" title="이 재난문자를 확인 처리하고 다시 알림이 오지 않게 합니다.">
+        ✓ 확인 (다시 알리지 않음)
+      </button>
+      <button type="button" class="toast-btn" onclick="markAlertConfirmed('${esc(alert.id)}'); focusDisasterAlert('${esc(alert.id)}'); this.closest('.ndvm-alert-toast').remove();">
+        지도 레이더 보기 →
+      </button>
+    </div>
   `;
 
   document.body.appendChild(toast);
 
-  // 7초 후 자동 소멸
+  // 8초 후 자동 소멸
   setTimeout(() => {
     if (toast.parentElement) {
       toast.style.opacity = '0';
       toast.style.transform = 'translateY(20px)';
       setTimeout(() => toast.remove(), 350);
     }
-  }, 7000);
+  }, 8000);
 }
 
-// 6. 특정 알림 위치로 지도 시점 이동 및 펄스 강조
+// 7. 특정 알림 위치로 지도 시점 이동 및 펄스 강조
 function focusDisasterAlert(alertId) {
   const alerts = ndvmDisasterAlerts.length > 0 ? ndvmDisasterAlerts : NDVM_FALLBACK_ALERTS;
   const target = alerts.find(a => a.id === alertId) || alerts[0];
   if (!target) return;
+
+  // 확인 처리
+  markAlertConfirmed(target.id, true);
 
   // 지도가 아닌 다른 화면에 있다면 지도 화면으로 전환
   if (state.page !== 'map') {
@@ -584,7 +751,6 @@ function focusDisasterAlert(alertId) {
     const map = window.ndvmLeafletMap;
     if (!map) return;
 
-    // 만약 레이더가 꺼져있다면 켜기
     if (!ndvmRadarVisible) {
       toggleAlertPulseLayer();
     }
@@ -609,13 +775,13 @@ function focusDisasterAlert(alertId) {
   }
 }
 
-// 7. 대피시설 검색으로 즉시 연결
+// 8. 대피시설 검색으로 즉시 연결
 function searchNearShelter(regionName) {
   state.shelterQuery = regionName.replace(/특별시|광역시|특별자치도/g, '').trim();
   navigate('shelter');
 }
 
-// 8. 레이더 펄스 오버레이 켜기/끄기 토글
+// 9. 레이더 펄스 오버레이 켜기/끄기 토글
 function toggleAlertPulseLayer() {
   ndvmRadarVisible = !ndvmRadarVisible;
   const map = window.ndvmLeafletMap;
@@ -644,7 +810,7 @@ function toggleAlertPulseLayer() {
   }
 }
 
-// 9. 긴급재난문자 보관함 모달 (전체보기 & 필터링)
+// 10. 긴급재난문자 보관함 모달 (전체보기 & 필터링 & 전체 확인 기능)
 function openDisasterAlertModal() {
   let modalEl = document.getElementById('ndvm-alert-modal');
   if (!modalEl) {
@@ -656,12 +822,22 @@ function openDisasterAlertModal() {
 
   const alerts = ndvmDisasterAlerts.length > 0 ? ndvmDisasterAlerts : NDVM_FALLBACK_ALERTS;
 
-  const renderModalContent = (filterCategory = '전체') => {
-    const filtered = filterCategory === '전체'
+  let currentCategory = '전체';
+  let showUnconfirmedOnly = false;
+
+  const renderModalContent = () => {
+    let filtered = currentCategory === '전체'
       ? alerts
-      : alerts.filter(a => a.category.includes(filterCategory));
+      : alerts.filter(a => a.category.includes(currentCategory));
+
+    if (showUnconfirmedOnly) {
+      filtered = filtered.filter(a => !isAlertConfirmed(a.id));
+    }
 
     const categories = ['전체', '호우', '산사태', '지진', '홍수', '태풍'];
+    const confirmedCount = alerts.filter(a => isAlertConfirmed(a.id)).length;
+    const unconfirmedCount = alerts.length - confirmedCount;
+    const isMuted = isToastsMuted();
 
     modalEl.innerHTML = `
       <div class="ndvm-modal-window" role="dialog" aria-labelledby="alert-modal-title" aria-modal="true">
@@ -670,36 +846,63 @@ function openDisasterAlertModal() {
             <span class="eyebrow">REAL-TIME DISASTER BROADCAST</span>
             <h2 id="alert-modal-title">🚨 전국 실시간 긴급재난문자 보관함</h2>
           </div>
-          <button type="button" class="modal-close-btn" id="modal-close-x" aria-label="닫기">×</button>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button type="button" class="btn btn-ack-all" id="modal-ack-all" style="font-size:11px;padding:5px 10px;background:#059669;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:700;">
+              ✓ 전체 알림 확인(읽음) 처리
+            </button>
+            <button type="button" class="btn ${isMuted ? 'muted' : ''}" id="modal-mute-toggle" style="font-size:11px;padding:5px 10px;background:#334155;color:#fff;border:none;border-radius:6px;cursor:pointer;">
+              ${isMuted ? '🔕 팝업 음소거 중' : '🔔 팝업 알림 켜짐'}
+            </button>
+            <button type="button" class="modal-close-btn" id="modal-close-x" aria-label="닫기">×</button>
+          </div>
         </header>
 
-        <div class="modal-filter-tabs">
-          ${categories.map(cat => `
-            <button type="button" class="modal-tab ${filterCategory === cat ? 'active' : ''}" data-cat="${cat}">
-              ${cat} ${cat === '전체' ? `(${alerts.length})` : ''}
+        <div class="modal-filter-tabs" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+          <div style="display:flex;gap:4px;flex-wrap:wrap;">
+            ${categories.map(cat => `
+              <button type="button" class="modal-tab ${currentCategory === cat ? 'active' : ''}" data-cat="${cat}">
+                ${cat} ${cat === '전체' ? `(${alerts.length})` : ''}
+              </button>
+            `).join('')}
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <button type="button" class="btn-filter-status ${showUnconfirmedOnly ? 'active' : ''}" id="toggle-unconfirmed-filter" style="font-size:11px;padding:4px 9px;border-radius:6px;border:1px solid #475569;background:${showUnconfirmedOnly ? '#dc2626' : '#1e293b'};color:#fff;cursor:pointer;">
+              미확인 알림만 보기 (${unconfirmedCount})
             </button>
-          `).join('')}
+          </div>
         </div>
 
         <div class="ndvm-modal-body">
           <div class="alert-cards-grid">
-            ${filtered.map(item => {
+            ${filtered.length === 0 ? `
+              <div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:#94a3b8;">
+                <p style="font-size:15px;font-weight:600;margin-bottom:6px;">해당 조건의 재난문자가 없습니다.</p>
+                <small>모든 알림을 확인했거나 필터 조건에 일치하는 항목이 없습니다.</small>
+              </div>
+            ` : filtered.map(item => {
               const isEmer = item.level === '긴급재난' || item.level === '위급재난';
+              const isConf = isAlertConfirmed(item.id);
               return `
-                <article class="alert-card ${isEmer ? 'danger' : 'warning'}">
+                <article class="alert-card ${isEmer ? 'danger' : 'warning'} ${isConf ? 'is-confirmed' : ''}">
                   <div class="alert-card-top">
                     <span class="badge ${isEmer ? 'danger' : 'warning'}">${esc(item.level)}</span>
                     <span class="alert-card-category">${esc(item.category)}</span>
                     <span class="alert-card-time">${esc(item.timestamp)}</span>
+                    ${isConf ? '<span class="badge confirmed" style="background:#059669;color:#fff;margin-left:auto;">✓ 확인완료</span>' : ''}
                   </div>
                   <h3 class="alert-card-title">${esc(item.title)}</h3>
                   <div class="alert-card-sender">발송처: ${esc(item.sender)} · 대상: ${esc(item.region)}</div>
                   <p class="alert-card-msg">${esc(item.message)}</p>
-                  <div class="alert-card-action">
-                    <span class="alert-card-inst">💡 ${esc(item.instruction)}</span>
-                    <button type="button" class="btn primary btn-fly-map" data-alert-id="${esc(item.id)}">
-                      지도에서 보기 →
-                    </button>
+                  <div class="alert-card-action" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                    <span class="alert-card-inst" style="flex:1;">💡 ${esc(item.instruction)}</span>
+                    <div style="display:flex;gap:6px;">
+                      <button type="button" class="btn btn-toggle-card-ack" data-alert-id="${esc(item.id)}" style="font-size:11px;padding:5px 9px;border-radius:6px;border:1px solid #475569;background:${isConf ? '#334155' : '#059669'};color:#fff;cursor:pointer;">
+                        ${isConf ? '확인 취소' : '✓ 확인 완료'}
+                      </button>
+                      <button type="button" class="btn primary btn-fly-map" data-alert-id="${esc(item.id)}">
+                        지도에서 보기 →
+                      </button>
+                    </div>
                   </div>
                 </article>
               `;
@@ -708,15 +911,50 @@ function openDisasterAlertModal() {
         </div>
 
         <footer class="ndvm-modal-footer">
-          <span>출처: 행정안전부 국민재난안전포털 재난문자방송 · 실시간 갱신</span>
+          <span>출처: 행정안전부 국민재난안전포털 재난문자방송 · 실시간 갱신 · 확인된 알림은 중복 팝업 차단</span>
           <button type="button" class="btn" id="modal-close-foot">닫기</button>
         </footer>
       </div>
     `;
 
-    // 모달 내 이벤트 핸들러
+    // 이벤트 리스너 바인딩
     modalEl.querySelectorAll('.modal-tab').forEach(btn => {
-      btn.onclick = () => renderModalContent(btn.dataset.cat);
+      btn.onclick = () => {
+        currentCategory = btn.dataset.cat;
+        renderModalContent();
+      };
+    });
+
+    const unconfBtn = document.getElementById('toggle-unconfirmed-filter');
+    if (unconfBtn) {
+      unconfBtn.onclick = () => {
+        showUnconfirmedOnly = !showUnconfirmedOnly;
+        renderModalContent();
+      };
+    }
+
+    const ackAllBtn = document.getElementById('modal-ack-all');
+    if (ackAllBtn) {
+      ackAllBtn.onclick = () => {
+        markAllAlertsConfirmed();
+        renderModalContent();
+      };
+    }
+
+    const muteBtn = document.getElementById('modal-mute-toggle');
+    if (muteBtn) {
+      muteBtn.onclick = () => {
+        toggleMuteToasts();
+        renderModalContent();
+      };
+    }
+
+    modalEl.querySelectorAll('.btn-toggle-card-ack').forEach(btn => {
+      btn.onclick = () => {
+        const id = btn.dataset.alertId;
+        markAlertConfirmed(id, !isAlertConfirmed(id));
+        renderModalContent();
+      };
     });
 
     modalEl.querySelectorAll('.btn-fly-map').forEach(btn => {
@@ -733,7 +971,8 @@ function openDisasterAlertModal() {
     if (closeBtnFoot) closeBtnFoot.onclick = closeDisasterAlertModal;
   };
 
-  renderModalContent('전체');
+  window.__refreshAlertModal = renderModalContent;
+  renderModalContent();
   modalEl.classList.add('open');
   document.body.classList.add('modal-open');
 }
@@ -746,7 +985,7 @@ function closeDisasterAlertModal() {
   document.body.classList.remove('modal-open');
 }
 
-// 10. 모듈 초기화 (앱 로드시 실행)
+// 11. 모듈 초기화 (앱 로드시 실행)
 async function initNdvmAlertsSystem() {
   await fetchDisasterAlerts();
   renderAlertTickerUI();
@@ -769,3 +1008,8 @@ window.closeDisasterAlertModal = closeDisasterAlertModal;
 window.searchNearShelter = searchNearShelter;
 window.renderLiveRadarHud = renderLiveRadarHud;
 window.simulateIncomingAlert = simulateIncomingAlert;
+window.markAlertConfirmed = markAlertConfirmed;
+window.markAllAlertsConfirmed = markAllAlertsConfirmed;
+window.isAlertConfirmed = isAlertConfirmed;
+window.toggleMuteToasts = toggleMuteToasts;
+window.isToastsMuted = isToastsMuted;

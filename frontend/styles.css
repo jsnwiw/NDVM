@@ -2561,9 +2561,93 @@ main{flex:1;min-width:0;background:var(--bg)}.footer{display:flex;justify-conten
   padding: 4px 10px;
   border-radius: 6px;
   cursor: pointer;
-  margin-top: 4px;
+  transition: all 0.2s ease;
 }
 .toast-btn:hover { background: #059669; }
+
+.toast-btn-ack {
+  background: #334155;
+  color: #e2e8f0;
+  border: 1px solid #475569;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 9px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.toast-btn-ack:hover {
+  background: #059669;
+  color: #ffffff;
+  border-color: #059669;
+}
+
+/* 티커 바 확인 버튼 및 음소거 버튼 */
+.ticker-btn-ack {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  border: 1px solid #10b981;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.ticker-btn-ack:hover {
+  background: #10b981;
+  color: #ffffff;
+}
+.ticker-btn-ack.confirmed {
+  background: #1e293b;
+  color: #94a3b8;
+  border-color: #475569;
+}
+.ticker-mute-btn {
+  background: rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.ticker-mute-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+}
+.ticker-mute-btn.muted {
+  background: #451a1a;
+  color: #fca5a5;
+  border-color: #7f1d1d;
+}
+.ticker-beacon.beacon-off {
+  animation: none !important;
+  opacity: 0.35;
+  background: #64748b;
+}
+
+/* 확인된 알림 지도 펄스 마커 */
+.ndvm-radar-pulse.pulse-confirmed .radar-ring {
+  border-color: rgba(16, 185, 129, 0.35);
+  animation-duration: 4s;
+}
+.ndvm-radar-pulse.pulse-confirmed .radar-dot {
+  background: #059669;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+}
+
+/* 확인된 재난 카드 스타일 */
+.alert-card.is-confirmed {
+  opacity: 0.72;
+  border-left-color: #059669 !important;
+  background: rgba(15, 23, 42, 0.65);
+}
+.alert-card.is-confirmed:hover {
+  opacity: 1;
+}
 
 /* 지도 패널 relative 포지셔닝 보장 */
 .map-panel {
