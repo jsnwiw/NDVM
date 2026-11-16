@@ -563,7 +563,7 @@ function renderLiveRadarHud() {
   const confirmedCount = alerts.filter(a => isAlertConfirmed(a.id)).length;
   const recentAlerts = alerts.slice(0, 4);
 
-  hudEl.className = `ndvm-live-radar-hud ${ndvmHudCollapsed ? 'collapsed' : ''}`;
+  hudEl.className = `ndvm-live-radar-hud ${ndvmHudCollapsed ? 'collapsed' : ''} ${!ndvmRadarVisible ? 'is-hidden' : ''}`;
 
   hudEl.innerHTML = `
     <div class="radar-hud-header" id="radar-hud-toggle-btn" title="${ndvmHudCollapsed ? '클릭하여 펼치기' : '클릭하여 접기'}">
@@ -774,7 +774,11 @@ function toggleAlertPulseLayer() {
 
   const hud = document.getElementById('ndvm-live-radar-hud');
   if (hud) {
-    hud.style.display = ndvmRadarVisible ? 'block' : 'none';
+    if (ndvmRadarVisible) {
+      hud.classList.remove('is-hidden');
+    } else {
+      hud.classList.add('is-hidden');
+    }
   }
 }
 

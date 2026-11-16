@@ -170,11 +170,11 @@ function selectRegion(regionName, shouldZoom) {
 
   if (shouldZoom !== false && ndvmLeafletMap) {
     if (matchLayer && typeof matchLayer.getBounds === 'function') {
-      ndvmLeafletMap.fitBounds(matchLayer.getBounds(), { padding: [40, 40], maxZoom: 12 });
+      ndvmLeafletMap.flyToBounds(matchLayer.getBounds(), { padding: [40, 40], maxZoom: 12, duration: 1.2, easeLinearity: 0.25 });
     } else {
       const coords = approximateCoords(regionName);
       if (coords) {
-        ndvmLeafletMap.setView(coords, 10);
+        ndvmLeafletMap.flyTo(coords, 10, { duration: 1.2, easeLinearity: 0.25 });
       }
     }
   }
@@ -232,7 +232,7 @@ async function loadNdvmBoundaries() {
 
           highlightBoundary(regionName);
           if (ndvmLeafletMap) {
-            ndvmLeafletMap.fitBounds(layer.getBounds(), { padding: [30, 30], maxZoom: 10 });
+            ndvmLeafletMap.flyToBounds(layer.getBounds(), { padding: [30, 30], maxZoom: 10, duration: 1.1 });
           }
         });
       }
@@ -755,7 +755,7 @@ function addMapTools() {
         if(userMarker) userMarker.remove();
         userMarker = L.marker([latitude,longitude]).addTo(window.ndvmLeafletMap)
           .bindPopup('현재 기기 위치<br><small>위치는 이 브라우저에서만 사용됩니다.</small>').openPopup();
-        window.ndvmLeafletMap.setView([latitude,longitude],12);
+        window.ndvmLeafletMap.flyTo([latitude, longitude], 12, { duration: 1.2 });
       } else {
         alert(`현재 위치: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}\n지도 화면을 열어 다시 시도해 주세요.`);
       }
@@ -844,7 +844,12 @@ document.addEventListener('click', e => {
  }
  return;
  }
-  if (e.target.closest('#btn-reset-korea-view')) { if (ndvmLeafletMap) { ndvmLeafletMap.fitBounds(L.latLngBounds([33.0, 125.0], [38.6, 130.2]), { padding: [10, 10] }); } return; }
+  if (e.target.closest('#btn-reset-korea-view')) {
+    if (ndvmLeafletMap) {
+      ndvmLeafletMap.flyToBounds(L.latLngBounds([33.0, 125.0], [38.6, 130.2]), { padding: [10, 10], duration: 1.2 });
+    }
+    return;
+  }
     if (e.target.closest('#map-reload')) {
     loadNdvmRisks(state.mapDisaster);
     loadNdvmBoundaries();

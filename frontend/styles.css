@@ -2234,7 +2234,19 @@ main{flex:1;min-width:0;background:var(--bg);animation:ndvmPageFadeIn 0.35s cubi
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
   overflow: hidden;
   font-family: inherit;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.3s ease,
+              width 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              border-radius 0.3s ease;
+}
+.ndvm-live-radar-hud.is-hidden {
+  opacity: 0 !important;
+  transform: translateY(-16px) scale(0.95) !important;
+  pointer-events: none !important;
 }
 .ndvm-live-radar-hud.collapsed {
   width: auto;
@@ -2916,4 +2928,274 @@ input[type="range"]::-webkit-slider-thumb:hover {
 .radar-feed-item:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 14px rgba(25, 62, 71, 0.08) !important;
+}
+
+/* ==========================================================================
+   Full Feature Micro-Animations & Smooth Transitions
+   ========================================================================== */
+
+/* 1. 지도 컨트롤 및 범례 부드러운 상호작용 */
+.ndvm-map-filters .btn,
+.alert-toggle-btn,
+.dyn-toggle-btn {
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.ndvm-map-filters .btn:hover,
+.alert-toggle-btn:hover,
+.dyn-toggle-btn:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 4px 12px rgba(20, 45, 50, 0.12);
+}
+.ndvm-choropleth-legend {
+  transition: all 0.25s ease;
+}
+.ndvm-choropleth-legend:hover {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+}
+.ndvm-choropleth-legend span {
+  transition: transform 0.18s ease;
+}
+.ndvm-choropleth-legend span:hover {
+  transform: translateX(3px);
+}
+
+/* 2. 안전동행 5대 도구 카드 및 섹션 애니메이션 */
+.safety-tool-card,
+.safety-generated-card,
+.safety-tool-section,
+.action-card {
+  animation: ndvmSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease !important;
+}
+.safety-tool-card:hover,
+.action-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(25, 62, 71, 0.08);
+}
+
+/* 3. 비상용품 스마트 관리함 & 구호물자 리스트 모션 */
+.supply-table tr,
+.relay-list-item,
+.checklist-item {
+  transition: background 0.2s ease, transform 0.18s ease !important;
+}
+.supply-table tbody tr:hover,
+.relay-list-item:hover,
+.checklist-item:hover {
+  background-color: #f4faf8 !important;
+  transform: scale(1.005);
+}
+
+/* 4. 강수량 조회 차트 및 기상 정보 카드 모션 */
+.ndvm-weather-panel,
+.ndvm-rain-chart,
+.ndvm-live-panel {
+  animation: ndvmPageFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.ndvm-weather-grid > div,
+.ndvm-kpis > div {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.ndvm-weather-grid > div:hover,
+.ndvm-kpis > div:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(25, 62, 71, 0.07);
+  border-color: #c0ded9;
+}
+
+/* 5. 통계 페이지 랭킹 리스트 아이템 호버 */
+.ndvm-rank-list > div {
+  transition: all 0.18s ease !important;
+}
+.ndvm-rank-list > div:hover {
+  background-color: #f7fbf9;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+/* 6. 재난문자 티커 바 인터랙션 */
+.ndvm-ticker-bar {
+  transition: background-color 0.3s ease, border-color 0.3s ease !important;
+}
+.ticker-btn,
+.ticker-btn-ack,
+.ticker-mute-btn {
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+.ticker-btn:hover,
+.ticker-btn-ack:hover,
+.ticker-mute-btn:hover {
+  transform: scale(1.1);
+}
+.ticker-btn:active,
+.ticker-btn-ack:active,
+.ticker-mute-btn:active {
+  transform: scale(0.95);
+}
+
+/* 7. 재난 분석 요인 카드(Factors) 모션 */
+.factor-card {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.factor-card:hover {
+  transform: translateY(-3px) scale(1.01) !important;
+  box-shadow: 0 6px 18px rgba(25, 55, 60, 0.08) !important;
+}
+.factor-num {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+.factor-card:hover .factor-num {
+  transform: scale(1.15) rotate(-3deg);
+}
+
+/* 8. Leaflet 팝업 부드러운 페이드 모션 */
+.leaflet-popup {
+  animation: ndvmSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+/* ==========================================================================
+   Comprehensive Page-by-Page Feature Micro-Animations
+   ========================================================================== */
+
+/* 1. 홈 페이지 (Home Page) */
+.hero-tag {
+  animation: ndvmSlideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.hero h1 {
+  animation: ndvmSlideUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.hero > p {
+  animation: ndvmSlideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.hero-buttons {
+  animation: ndvmSlideUp 0.55s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.home-bottom {
+  animation: ndvmFadeIn 0.6s ease !important;
+}
+
+/* 2. 대피시설 조회 페이지 (Shelter Page) */
+.ndvm-shelter-form,
+.ndvm-shelter-quick-bar {
+  animation: ndvmSlideDown 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.quick-shelter-btn {
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.quick-shelter-btn:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 4px 12px rgba(25, 62, 71, 0.12);
+  background: #255e65 !important;
+  color: #fff !important;
+}
+.ndvm-shelter-card,
+.shelter-card {
+  animation: ndvmSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.ndvm-shelter-card:hover,
+.shelter-card:hover {
+  transform: translateY(-3px) scale(1.008);
+  box-shadow: 0 8px 24px rgba(25, 62, 71, 0.1) !important;
+  border-color: #9acbc3 !important;
+}
+
+/* 3. 행동요령 & 가이드 페이지 (Guide / Disaster Page) */
+.guide-sheet,
+.guide-header {
+  animation: ndvmPageFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.guide-step {
+  transition: all 0.25s ease !important;
+}
+.guide-step:hover {
+  background: #f4faf8 !important;
+  padding-left: 14px !important;
+  border-radius: 8px;
+}
+.guide-step:hover b {
+  color: #1e5c5b !important;
+  transform: scale(1.08);
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+
+/* 4. 소개 & 팀/프로젝트 타임라인 페이지 (About Page) */
+.about-hero {
+  animation: ndvmSlideDown 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.timeline-row {
+  transition: all 0.22s ease !important;
+}
+.timeline-row:hover {
+  background: #f4faf8 !important;
+  padding-left: 12px !important;
+  border-radius: 8px;
+  transform: translateX(4px);
+}
+.timeline-row:hover b {
+  color: #21696b !important;
+}
+
+/* 5. 도움말, FAQ 및 온라인 문의 페이지 (Help / FAQ Page) */
+.help-inquiry-box,
+.help-faq-box {
+  animation: ndvmPageFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.help-inquiry-box:hover,
+.help-faq-box:hover {
+  box-shadow: 0 6px 20px rgba(25, 62, 71, 0.06);
+}
+.help-inquiry-form input,
+.help-inquiry-form select,
+.help-inquiry-form textarea {
+  transition: all 0.2s ease !important;
+}
+.help-inquiry-form input:focus,
+.help-inquiry-form select:focus,
+.help-inquiry-form textarea:focus {
+  transform: translateY(-1px);
+  box-shadow: 0 0 0 3px rgba(37, 94, 101, 0.15) !important;
+}
+.my-inquiry-card {
+  animation: ndvmSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.my-inquiry-card:hover {
+  transform: translateY(-2px);
+  border-color: #94a3b8 !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* 6. 우리 동네 상세정보 패널 (Neighborhood Panel on Map Page) */
+.ndvm-neighborhood-panel {
+  animation: ndvmSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.n-grid-card {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.n-grid-card:hover {
+  transform: translateY(-3px) scale(1.01);
+  box-shadow: 0 8px 20px rgba(25, 62, 71, 0.08);
+}
+.n-tab-btn {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.n-tab-btn:hover {
+  transform: translateY(-1px);
+}
+.n-tab-btn:active {
+  transform: translateY(0);
+}
+
+/* 7. 오프라인 비상 QR 코드 생성 & 스캔 모션 */
+#ndvm-relay-qr canvas,
+#ndvm-relay-qr img {
+  animation: ndvmFadeIn 0.3s ease;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+#ndvm-relay-qr:hover canvas,
+#ndvm-relay-qr:hover img {
+  transform: scale(1.04);
 }

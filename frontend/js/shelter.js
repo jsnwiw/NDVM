@@ -687,7 +687,7 @@ function shelterPage() {
       ${filteredShelters.length > 0 ? `
         <div style="display:flex;flex-direction:column;gap:16px;">
           ${filteredShelters.map((s, idx) => `
-            <article class="panel" style="padding:22px 24px;">
+            <article class="panel ndvm-shelter-card" style="padding:22px 24px;animation:ndvmSlideUp 0.35s cubic-bezier(0.16,1,0.3,1) backwards;animation-delay:${Math.min(idx * 0.04, 0.4)}s;">
               <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:12px;">
                 <div>
                   <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
