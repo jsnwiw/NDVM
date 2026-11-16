@@ -1,4 +1,4 @@
-﻿/* NDVM - Interactive Map Module (Leaflet, GeoJSON Boundaries, Risk Coloring, Location Tools) */
+/* NDVM - Interactive Map Module (Leaflet, GeoJSON Boundaries, Risk Coloring, Location Tools) */
 
 let ndvmLeafletMap = null;
 let userMarker = null;
