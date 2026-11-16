@@ -458,7 +458,7 @@ function mapPage() {
 <button type="button" id="btn-toggle-dynamic" class="btn dyn-toggle-btn" onclick="toggleDynamicVulnerability()" aria-pressed="false" title="시간대별 실시간 유동인구 결합 동적 취약도 분석 켜기/끄기">👥 동적 취약성 (유동인구)</button>
       <button type="button" class="btn" data-page="rainfall">강수량 조회 →</button>
       <button type="button" id="btn-toggle-radar" class="btn alert-toggle-btn active" onclick="toggleAlertPulseLayer()" aria-pressed="true" title="실시간 재난문자 발생지 펄스 마커 켜기/끄기">
-        🚨 재난문자 레이더 <span class="badge radar-badge" id="radar-count-badge">6</span>
+        🚨 재난문자 <span class="badge radar-badge" id="radar-count-badge">6</span>
       </button>
     </div>
 

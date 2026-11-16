@@ -580,15 +580,8 @@ function renderLiveRadarHud() {
     </div>
 
     <div class="radar-hud-body">
-      <!-- 회전하는 레이더 스캐너 스코프 -->
+      <!-- 레이더 집계 현황 통계 -->
       <div class="radar-scope-container">
-        <div class="radar-scope-disc">
-          <div class="radar-scope-grid"></div>
-          <div class="radar-scope-sweep"></div>
-          <div class="radar-blip blip-1"></div>
-          <div class="radar-blip blip-2"></div>
-          <div class="radar-blip blip-3"></div>
-        </div>
         <div class="radar-scope-stats">
           <div class="stat-row">
             <span class="stat-label">레이더 상태:</span>
