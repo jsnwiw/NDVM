@@ -2658,3 +2658,128 @@ main{flex:1;min-width:0;background:var(--bg)}.footer{display:flex;justify-conten
 .map-panel {
   position: relative !important;
 }
+
+/* ==========================================================================
+   문의 / 도움말 (Help & Inquiry) 전용 스타일
+   ========================================================================== */
+.help-layout-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 22px;
+  margin-bottom: 24px;
+}
+@media (max-width: 960px) {
+  .help-layout-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.help-inquiry-box,
+.help-faq-box,
+.my-inquiries-panel {
+  padding: 24px;
+  background: #ffffff;
+  border: 1px solid var(--line, #dfeae8);
+  border-radius: 14px;
+  box-shadow: 0 3px 12px rgba(20, 45, 50, 0.04);
+}
+.help-inquiry-form {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+.help-inquiry-form label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #17363c;
+  margin-bottom: 4px;
+  display: block;
+}
+.help-inquiry-form input,
+.help-inquiry-form select,
+.help-inquiry-form textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 13px;
+  background: #ffffff;
+  color: #1e293b;
+  box-sizing: border-box;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+.help-inquiry-form input:focus,
+.help-inquiry-form select:focus,
+.help-inquiry-form textarea:focus {
+  outline: none;
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}
+.help-inquiry-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.help-feedback-box {
+  padding: 11px 15px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 4px;
+  animation: slideToastIn 0.3s ease;
+}
+.help-feedback-box.success {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+.help-feedback-box.error {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+.my-inquiries-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.my-inquiry-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 15px 18px;
+  transition: all 0.2s ease;
+}
+.my-inquiry-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+.my-inquiry-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.my-inquiry-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 6px;
+}
+.my-inquiry-msg {
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  margin-bottom: 8px;
+}
+.my-inquiry-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #94a3b8;
+  border-top: 1px solid #edf2f7;
+  padding-top: 8px;
+}

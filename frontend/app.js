@@ -91,6 +91,7 @@ function showPage(page) {
   if (page === 'stats') setTimeout(() => { if (typeof initNdvmStats === 'function') initNdvmStats(); }, 0);
   if (page === 'shelter') setTimeout(() => { if (typeof loadShelterStatus === 'function') loadShelterStatus(); }, 0);
   if (page === 'action' && typeof initSafetyPage === 'function') setTimeout(() => initSafetyPage(), 0);
+  if (page === 'help' && typeof initHelpPage === 'function') setTimeout(() => initHelpPage(), 0);
 }
 
 // Global UI Event Listeners
