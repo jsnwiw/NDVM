@@ -324,7 +324,7 @@ function renderAlertTickerUI() {
           <span class="ticker-time">${esc(current.timestamp)}</span>
           ${confirmed 
             ? '<span class="ticker-confirmed-label" style="display:inline-flex;align-items:center;background:#059669;color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;margin-left:6px;">✓ 확인됨</span>'
-            : '<span class="ticker-hint">지도 레이더 보기 ›</span>'}
+            : '<span class="ticker-hint">지도 보기 ›</span>'}
         </div>
 
         <div class="ticker-controls">
@@ -440,7 +440,7 @@ function navigateTicker(direction, fromAuto = false) {
   }
 }
 
-// 4. 지도 상의 레이더 펄스(Pulse) 마커 초기화 & 렌더링
+// 4. 지도 상의 펄스(Pulse) 마커 초기화 & 렌더링
 function initAlertsOnMap(map) {
   if (!map || !window.L) return;
 
@@ -468,7 +468,7 @@ function initAlertsOnMap(map) {
       return '⚠️';
     };
 
-    // 커스텀 레이더 펄스 애니메이션 DOM 아이콘
+    // 커스텀 펄스 애니메이션 DOM 아이콘
     const icon = L.divIcon({
       className: 'ndvm-radar-marker-wrap',
       html: `
@@ -538,11 +538,11 @@ function initAlertsOnMap(map) {
     countBadge.textContent = String(alerts.length);
   }
 
-  // 지도 위 실시간 레이더 HUD 위젯 렌더링
+  // 지도 위 실시간 알림 HUD 위젯 렌더링
   renderLiveRadarHud();
 }
 
-// 5. 지도 위에 띄우는 실시간 재난문자 레이더 플로팅 HUD (Live Radar HUD)
+// 5. 지도 위에 띄우는 실시간 재난문자 플로팅 HUD (Live Alert HUD)
 function renderLiveRadarHud() {
   const mapContainer = document.getElementById('ndvm-map');
   if (!mapContainer) return;
@@ -566,10 +566,10 @@ function renderLiveRadarHud() {
   hudEl.className = `ndvm-live-radar-hud ${ndvmHudCollapsed ? 'collapsed' : ''}`;
 
   hudEl.innerHTML = `
-    <div class="radar-hud-header" id="radar-hud-toggle-btn" title="${ndvmHudCollapsed ? '클릭하여 레이더 펼치기' : '클릭하여 접기'}">
+    <div class="radar-hud-header" id="radar-hud-toggle-btn" title="${ndvmHudCollapsed ? '클릭하여 펼치기' : '클릭하여 접기'}">
       <div class="radar-hud-title-wrap">
         <span class="radar-live-beacon" aria-hidden="true"></span>
-        <span class="radar-hud-title">실시간 재난 레이더</span>
+        <span class="radar-hud-title">실시간 재난문자 현황</span>
         <span class="radar-hud-badge">${alerts.length}</span>
       </div>
       <div class="radar-hud-actions">
@@ -580,11 +580,11 @@ function renderLiveRadarHud() {
     </div>
 
     <div class="radar-hud-body">
-      <!-- 레이더 집계 현황 통계 -->
+      <!-- 재난 집계 현황 통계 -->
       <div class="radar-scope-container">
         <div class="radar-scope-stats">
           <div class="stat-row">
-            <span class="stat-label">레이더 상태:</span>
+            <span class="stat-label">수신 상태:</span>
             <span class="stat-val ok">● 실시간 감시 중</span>
           </div>
           <div class="stat-row">
@@ -679,7 +679,7 @@ function showDisasterToast(alert) {
         ✓ 확인 (다시 알리지 않음)
       </button>
       <button type="button" class="toast-btn" onclick="markAlertConfirmed('${esc(alert.id)}'); focusDisasterAlert('${esc(alert.id)}'); this.closest('.ndvm-alert-toast').remove();">
-        지도 레이더 보기 →
+        지도에서 보기 →
       </button>
     </div>
   `;
@@ -749,7 +749,7 @@ function searchNearShelter(regionName) {
   navigate('shelter');
 }
 
-// 9. 레이더 펄스 오버레이 켜기/끄기 토글
+// 9. 펄스 오버레이 켜기/끄기 토글
 function toggleAlertPulseLayer() {
   ndvmRadarVisible = !ndvmRadarVisible;
   const map = window.ndvmLeafletMap;

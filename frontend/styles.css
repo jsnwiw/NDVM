@@ -409,7 +409,7 @@ main{flex:1;min-width:0;background:var(--bg)}.footer{display:flex;justify-conten
 }
 
 
-/* 2. 지도 레이더 펄스(Pulse) 마커 애니메이션 */
+/* 2. 지도 펄스(Pulse) 마커 애니메이션 */
 .ndvm-radar-marker-wrap {
   background: transparent !important;
   border: none !important;
@@ -504,7 +504,7 @@ main{flex:1;min-width:0;background:var(--bg)}.footer{display:flex;justify-conten
   z-index: 4;
 }
 
-/* 3. 레이더 마커 팝업 디자인 */
+/* 3. 재난 마커 팝업 디자인 */
 .ndvm-radar-popup-custom .leaflet-popup-content-wrapper {
   border-radius: 14px !important;
   box-shadow: 0 10px 30px rgba(18, 38, 43, 0.2) !important;
@@ -607,7 +607,7 @@ main{flex:1;min-width:0;background:var(--bg)}.footer{display:flex;justify-conten
   background: #19464c;
 }
 
-/* 지도 필터 내 레이더 토글 버튼 */
+/* 지도 필터 내 재난문자 토글 버튼 */
 .alert-toggle-btn {
   border-color: #f1b3b3 !important;
   background: #fff8f8 !important;
@@ -2200,7 +2200,7 @@ main{flex:1;min-width:0;background:var(--bg)}.footer{display:flex;justify-conten
 
 
 /* ==========================================================================
-   실시간 재난문자 레이더 플로팅 HUD (Live Radar HUD & Scanner)
+   실시간 재난문자 플로팅 HUD (Live Alert HUD & Feed)
    ========================================================================== */
 .ndvm-live-radar-hud {
   position: absolute;
@@ -2292,7 +2292,7 @@ main{flex:1;min-width:0;background:var(--bg)}.footer{display:flex;justify-conten
   padding: 12px 14px;
 }
 
-/* 원형 레이더 스캐너 스코프 */
+/* 재난 현황 요약 스코프 */
 .radar-scope-container {
   display: flex;
   align-items: center;
