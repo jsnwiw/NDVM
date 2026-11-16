@@ -539,6 +539,9 @@ function initNdvmMap() {
   if (typeof window.initHotspotsOnMap === 'function') {
     window.initHotspotsOnMap(ndvmLeafletMap);
   }
+  if (typeof window.syncDynamicTimelineVisibility === 'function') {
+    window.syncDynamicTimelineVisibility();
+  }
 }
 async function loadNdvmFloodWmsLayer() {
   const status = document.getElementById('map-status');
