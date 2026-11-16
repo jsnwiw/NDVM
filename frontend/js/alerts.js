@@ -7,7 +7,6 @@ let ndvmTickerIsPaused = false;
 let ndvmAlertPulseLayer = null;
 let ndvmAlertMarkersMap = {};
 let ndvmRadarVisible = true;
-let ndvmLiveSimTimer = null;
 let ndvmHudCollapsed = false;
 
 // 알림 확인(읽음) 및 차단 상태 영구 보관 (localStorage)
@@ -110,7 +109,7 @@ function toggleMuteToasts() {
   return next;
 }
 
-// 기본 실시간 재난문자 데이터셋
+// 기본 실시간 재난문자 데이터셋 (전국 주요 재난 현황)
 const NDVM_FALLBACK_ALERTS = [
   {
     id: "alert_2026_01",
@@ -207,12 +206,9 @@ const NDVM_FALLBACK_ALERTS = [
     timestamp: "1시간 30분 전 (12:45)",
     instruction: "상습 침수 도로 우회 및 보행 안전 유의",
     is_active: true
-  }
-];
-
-// 실시간 시뮬레이션용 후보 알림 풀
-const NDVM_LIVE_INCOMING_POOL = [
+  },
   {
+    id: "alert_2026_07",
     category: "호우",
     level: "긴급재난",
     sender: "대전광역시 재난안전대책본부",
@@ -223,9 +219,12 @@ const NDVM_LIVE_INCOMING_POOL = [
     sigungu: "중구",
     lat: 36.3259,
     lng: 127.4215,
-    instruction: "하천변 출입 금지 및 대전 중구 고지대 대피소 이용"
+    timestamp: "2시간 전 (12:15)",
+    instruction: "하천변 출입 금지 및 대전 중구 고지대 대피소 이용",
+    is_active: true
   },
   {
+    id: "alert_2026_08",
     category: "산사태",
     level: "긴급재난",
     sender: "산림청",
@@ -236,9 +235,12 @@ const NDVM_LIVE_INCOMING_POOL = [
     sigungu: "거제시",
     lat: 34.8806,
     lng: 128.6211,
-    instruction: "산림 인접지 접근 자제 및 붕괴 징후 발견 시 119 신고"
+    timestamp: "2시간 30분 전 (11:45)",
+    instruction: "산림 인접지 접근 자제 및 붕괴 징후 발견 시 119 신고",
+    is_active: true
   },
   {
+    id: "alert_2026_09",
     category: "홍수",
     level: "긴급재난",
     sender: "낙동강홍수통제소",
@@ -249,9 +251,12 @@ const NDVM_LIVE_INCOMING_POOL = [
     sigungu: "수성구",
     lat: 35.8582,
     lng: 128.6306,
-    instruction: "신천 하상도로 진입 절대 금지 및 우회 도로 이용"
+    timestamp: "3시간 전 (11:15)",
+    instruction: "신천 하상도로 진입 절대 금지 및 우회 도로 이용",
+    is_active: true
   },
   {
+    id: "alert_2026_10",
     category: "태풍",
     level: "긴급재난",
     sender: "제주특별자치도 재난본부",
@@ -262,7 +267,9 @@ const NDVM_LIVE_INCOMING_POOL = [
     sigungu: "제주시",
     lat: 33.4996,
     lng: 126.5312,
-    instruction: "외출 자제, 창문 결속 및 해안가 접근 절대 금지"
+    timestamp: "3시간 30분 전 (10:45)",
+    instruction: "외출 자제, 창문 결속 및 해안가 접근 절대 금지",
+    is_active: true
   }
 ];
 
@@ -628,8 +635,7 @@ function renderLiveRadarHud() {
       </div>
 
       <div class="radar-hud-footer">
-        <button type="button" class="radar-hud-btn-all" onclick="openDisasterAlertModal()">전체 목록 (${alerts.length})</button>
-        <button type="button" class="radar-hud-btn-sim" onclick="simulateIncomingAlert()" title="새로운 실시간 재난문자 수신 시뮬레이션">+ 모의 수신</button>
+        <button type="button" class="radar-hud-btn-all" onclick="openDisasterAlertModal()" style="width:100%;">재난문자 보관함 전체보기 (${alerts.length})</button>
       </div>
     </div>
   `;
@@ -644,53 +650,17 @@ function renderLiveRadarHud() {
   }
 }
 
-// 6. 실시간 재난문자 수신 시뮬레이션 및 토스트 알림
-let simIndex = 0;
-function simulateIncomingAlert() {
-  const sample = NDVM_LIVE_INCOMING_POOL[simIndex % NDVM_LIVE_INCOMING_POOL.length];
-  simIndex++;
-
-  const now = new Date();
-  const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
-  const newAlert = {
-    ...sample,
-    id: `alert_live_${Date.now()}`,
-    timestamp: `방금 전 (${timeStr})`,
-    is_active: true
-  };
-
-  // 만약 동일 제목의 알림을 사용자가 이미 확인한 적이 있다면 자동 확인 처리
-  if (isAlertConfirmed(sample.title)) {
-    markAlertConfirmed(newAlert.id, true);
-  }
-
-  // 목록 최상단에 추가
-  ndvmDisasterAlerts.unshift(newAlert);
-
-  // 티커 바 갱신
-  ndvmCurrentTickerIndex = 0;
-  renderAlertTickerUI();
-
-  // 지도 마커 및 HUD 갱신
-  if (window.ndvmLeafletMap) {
-    initAlertsOnMap(window.ndvmLeafletMap);
-  }
-
-  // 화면 우측 하단 토스트 알림 팝업 (확인된 알림이나 음소거 시 내부에서 자동 차단)
-  showDisasterToast(newAlert);
-}
-
+// 6. 토스트 알림 팝업 (신규 알림 전용)
 function showDisasterToast(alert) {
   if (!alert) return;
 
-  // [핵심 조건 1] 전체 알림 팝업이 음소거 상태인 경우 알림 안 옴
+  // 1. 전체 알림 팝업이 음소거 상태인 경우 알림 안 옴
   if (isToastsMuted()) return;
 
-  // [핵심 조건 2] 사용자가 이미 확인(읽음)한 알림인 경우 알림 안 옴
+  // 2. 사용자가 이미 확인(읽음)한 알림인 경우 알림 안 옴
   if (isAlertConfirmed(alert.id) || isAlertConfirmed(alert.title)) return;
 
-  // [핵심 조건 3] 사이트에 들어왔을 때 이미 존재하던 기존 알림인 경우 팝업 알림 안 옴
+  // 3. 사이트에 들어왔을 때 이미 존재하던 기존 알림인 경우 팝업 알림 안 옴
   if (ndvmInitialAlertIds.has(String(alert.id))) return;
 
   let existingToast = document.getElementById('ndvm-alert-toast');
@@ -731,6 +701,11 @@ function showDisasterToast(alert) {
       setTimeout(() => toast.remove(), 350);
     }
   }, 8000);
+}
+
+// 모의 수신 기능 비활성화 (사용자 요청으로 제거됨)
+function simulateIncomingAlert() {
+  // 모의 수신 기능 제거됨 (실제 수신 또는 공식 데이터만 유지)
 }
 
 // 7. 특정 알림 위치로 지도 시점 이동 및 펄스 강조
@@ -990,12 +965,6 @@ async function initNdvmAlertsSystem() {
   await fetchDisasterAlerts();
   renderAlertTickerUI();
   startTickerTimer();
-
-  // 50초마다 자동 실시간 재난문자 수신 시뮬레이션
-  if (ndvmLiveSimTimer) clearInterval(ndvmLiveSimTimer);
-  ndvmLiveSimTimer = setInterval(() => {
-    simulateIncomingAlert();
-  }, 50000);
 }
 
 // 전역 바인딩
